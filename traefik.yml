@@ -1,0 +1,57 @@
+version: '3.7'
+
+services:
+  traefik:
+    image: traefik:v2.5.1
+    container_name: traefik
+    command:
+      - "--metrics=true"
+      - "--metrics.prometheus=true"
+      - "--metrics.prometheus.buckets=0.1, 0.2, 0.3, 0.5, 1.0, 1.2, 2.0, 3.0, 4.0, 5.0, 8.0, 10.0"
+      - "--metrics.prometheus.addrouterslabels=true"
+      - "--entryPoints.metrics.address=:8088"
+      - "--metrics.prometheus.entryPoint=metrics"
+
+      - "--api.dashboard=true"
+      - "--providers.docker=true"
+      - "--providers.docker.exposedbydefault=false"
+      - "--entrypoints.web.address=:8085"
+      - "--entrypoints.web.http.redirections.entryPoint.to=websecure_pub"
+      - "--entrypoints.web.http.redirections.entryPoint.scheme=https"
+      - "--entrypoints.websecure.address=:8443"
+      - "--entrypoints.websecure_pub.address=:443"
+      - "--entrypoints.websecure.http.tls.certResolver=letsencrypt"
+      - "--certificatesresolvers.letsencrypt.acme.httpchallenge=true"
+      - "--certificatesresolvers.letsencrypt.acme.httpchallenge.entrypoint=web"
+      - "--certificatesresolvers.letsencrypt.acme.email=m.sinitsin@traflead.ru"
+      - "--certificatesresolvers.letsencrypt.acme.storage=/letsencrypt/acme.json"
+      - "--log.level=INFO"
+    ports:
+      - mode: host
+        target: 8085
+        published: 80
+      - mode: host
+        target: 8443
+        published: 443
+      - 8088:8088
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.traefik-secure.entrypoints=websecure"
+      - "traefik.http.routers.traefik-secure.rule=Host(`traff.winlocal.local`)"
+      - "traefik.http.routers.traefik-secure.tls.certresolver=letsencrypt"
+      - "traefik.http.routers.traefik-secure.middlewares=traefik-admin"
+      - "traefik.http.routers.traefik-secure.service=api@internal"
+      - "traefik.http.services.traefik-secure.loadbalancer.server.port=888"
+    # admin admin
+      - "traefik.http.middlewares.traefik-admin.basicauth.users=admin:$$apr1$$NUAfpdMP$$JKrq2mbTv.IY34XuY6zfa1"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - traefik-certificates:/letsencrypt
+    networks:
+      - traefik
+volumes:
+  traefik-certificates:
+networks:
+  traefik:
+    external: true
+
