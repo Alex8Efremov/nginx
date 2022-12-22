@@ -13,6 +13,8 @@ services:
       - "traefik.http.routers.app_1.rule=Host(`${DOMAIN_FIRST}`)"
       - "traefik.http.routers.app_1.service=app_1"
       - "traefik.http.services.app_1.loadbalancer.server.port=80"
+    ports:
+      - 8888:80
 
   app_2:
     image: nginx:1.23.2-alpine
